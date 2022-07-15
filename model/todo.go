@@ -3,6 +3,8 @@ package model
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/alexeyco/simpletable"
 	"io/ioutil"
 	"os"
 	"time"
@@ -83,4 +85,65 @@ func (t *Todes) Store(filename string) error {
 	}
 
 	return ioutil.WriteFile(filename, data, 0644)
+}
+
+func (t *Todes) Print() {
+	table := simpletable.New()
+
+	table.Header = &simpletable.Header{
+		Cells: []*simpletable.Cell{
+			{Align: simpletable.AlignCenter, Text: "#"},
+			{Align: simpletable.AlignCenter, Text: "Task"},
+			{Align: simpletable.AlignCenter, Text: "Done?"},
+			{Align: simpletable.AlignCenter, Text: "CreatedAt"},
+			{Align: simpletable.AlignCenter, Text: "CompletedAt"},
+		},
+	}
+
+	var cells [][]*simpletable.Cell
+
+	for idx, item := range *t {
+		idx++
+
+		index := Gray(fmt.Sprintf("%d", idx))
+		task := Blue(item.Task)
+		done := Red("⛔️")
+		createdAt := Gray(item.CreatedAt.Format(time.RFC1123))
+		completedAt := Gray(item.CompletedAt.Format(time.RFC1123))
+
+		if item.Done {
+			task = Green(fmt.Sprintf("\u2705 %s", item.Task))
+			done = GreenMark("✅")
+		}
+		cells = append(cells, *&[]*simpletable.Cell{
+			{Align: simpletable.AlignCenter, Text: index},
+			{Align: simpletable.AlignCenter, Text: task},
+			{Align: simpletable.AlignCenter, Text: done},
+			{Align: simpletable.AlignCenter, Text: createdAt},
+			{Align: simpletable.AlignCenter, Text: completedAt},
+		})
+	}
+
+	table.Body = &simpletable.Body{Cells: cells}
+
+	table.Footer = &simpletable.Footer{
+		Cells: []*simpletable.Cell{
+			{Align: simpletable.AlignCenter, Span: 5, Text: fmt.Sprintf("You have %d pending todos", t.CountPending())},
+		},
+	}
+
+	table.SetStyle(simpletable.StyleUnicode)
+
+	table.Println()
+}
+
+func (t *Todes) CountPending() int {
+	total := 0
+
+	for _, item := range *t {
+		if !item.Done {
+			total++
+		}
+	}
+	return total
 }
